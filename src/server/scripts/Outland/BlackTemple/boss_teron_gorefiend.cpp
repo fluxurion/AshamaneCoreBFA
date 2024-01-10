@@ -338,7 +338,7 @@ public:
         {
             if (Creature* teron = _instance->GetCreature(DATA_TERON_GOREFIEND))
             {
-                if (Unit* target = teron->AI()->SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true, -SPELL_SPIRITUAL_VENGEANCE))
+                if (Unit* target = teron->AI()->SelectTarget(SELECT_TARGET_RANDOM, 0, 100.0f, true, true, -SPELL_SPIRITUAL_VENGEANCE))
                 {
                     ResetThreatList();
                     AttackStart(target);
