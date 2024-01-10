@@ -241,6 +241,16 @@ namespace SimpleWeb {
         return asio::ip::tcp::endpoint();
       }
 
+      asio::ip::tcp::endpoint local_endpoint() const noexcept {
+        try {
+          if(auto connection = this->connection.lock())
+            return connection->socket->lowest_layer().local_endpoint();
+        }
+        catch(...) {
+        }
+        return asio::ip::tcp::endpoint();
+      }
+
       /// Deprecated, please use remote_endpoint().address().to_string() instead.
       DEPRECATED std::string remote_endpoint_address() const noexcept {
         try {
@@ -273,7 +283,7 @@ namespace SimpleWeb {
     class Connection : public std::enable_shared_from_this<Connection> {
     public:
       template <typename... Args>
-      Connection(std::shared_ptr<ScopeRunner> handler_runner_, Args &&... args) noexcept : handler_runner(std::move(handler_runner_)), socket(new socket_type(std::forward<Args>(args)...)) {}
+      Connection(std::shared_ptr<ScopeRunner> handler_runner_, Args &&...args) noexcept : handler_runner(std::move(handler_runner_)), socket(new socket_type(std::forward<Args>(args)...)) {}
 
       std::shared_ptr<ScopeRunner> handler_runner;
 
@@ -293,7 +303,7 @@ namespace SimpleWeb {
           return;
         }
 
-        timer = std::unique_ptr<asio::steady_timer>(new asio::steady_timer(get_socket_executor(*socket), std::chrono::seconds(seconds)));
+        timer = make_steady_timer(*socket, std::chrono::seconds(seconds));
         std::weak_ptr<Connection> self_weak(this->shared_from_this()); // To avoid keeping Connection instance alive longer than needed
         timer->async_wait([self_weak](const error_code &ec) {
           if(!ec) {
@@ -507,7 +517,7 @@ namespace SimpleWeb {
     virtual void accept() = 0;
 
     template <typename... Args>
-    std::shared_ptr<Connection> create_connection(Args &&... args) noexcept {
+    std::shared_ptr<Connection> create_connection(Args &&...args) noexcept {
       auto connections = this->connections;
       auto connection = std::shared_ptr<Connection>(new Connection(handler_runner, std::forward<Args>(args)...), [connections](Connection *connection) {
         {
